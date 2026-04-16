@@ -22,3 +22,5 @@ All notable governance, contract, migration, and repo-structure changes should b
 - Selected context and environment switch implementation
 - Demo read-only runtime guardrails
 - Demo reset maintenance flow
+- 
+2026-04-16：Lemma-HR-runtime bootstrap 完成，main 已含 leave locale slice
