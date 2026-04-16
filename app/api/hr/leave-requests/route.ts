@@ -7,6 +7,7 @@ import {
   resolve_leave_locale_hint,
   resolve_leave_request_employee
 } from "../leave/_locale";
+import { load_leave_request_snapshot } from "../leave/_snapshot";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -207,18 +208,14 @@ export async function POST(request: Request) {
     }
   }
 
-  const locale_hint = await resolve_leave_locale_hint(service, scope, employee, ctx.user_id);
-
-  return ok(
-    schema_version,
-    {
-      id: leave_request.id,
-      status: leave_request.status ?? "pending",
-      current_step: leave_request.current_step ?? 0,
-      approval_steps_count: chain.length,
-      resolved_locale: locale_hint.resolved_locale,
-      locale_source: locale_hint.locale_source
-    },
-    201
+  const { response: snapshot_error, data } = await load_leave_request_snapshot(
+    service,
+    scope,
+    ctx.user_id,
+    leave_request.id,
+    schema_version
   );
+  if (snapshot_error || !data) return snapshot_error;
+
+  return ok(schema_version, data, 201);
 }

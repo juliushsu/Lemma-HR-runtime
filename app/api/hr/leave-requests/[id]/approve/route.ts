@@ -1,30 +1,22 @@
-import { createClient } from "@supabase/supabase-js";
 import { fail, ok } from "../../../_lib";
 import { get_leave_write_context } from "../../../leave/_lib";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+import { get_leave_service_supabase, load_leave_request_snapshot } from "../../../leave/_snapshot";
 
 type Params = {
   params: Promise<{ id: string }>;
 };
 
-function get_service_supabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-}
-
 export async function POST(request: Request, { params }: Params) {
   const schema_version = "hr.leave_request_mvp.approve.v1";
-  const { response, scope } = await get_leave_write_context(request);
-  if (response || !scope) return response;
+  const { response, ctx, scope } = await get_leave_write_context(request);
+  if (response || !ctx || !scope) return response;
 
   const { id } = await params;
   if (!id) {
     return fail(schema_version, "INVALID_REQUEST", "Leave request id is required", 400);
   }
 
-  const service = get_service_supabase();
+  const service = get_leave_service_supabase();
   if (!service) {
     return fail(schema_version, "CONFIG_MISSING", "Supabase service role config is missing", 500);
   }
@@ -119,5 +111,14 @@ export async function POST(request: Request, { params }: Params) {
     return fail(schema_version, "INTERNAL_ERROR", "Failed to update leave request", 500);
   }
 
-  return ok(schema_version, updated_request);
+  const { response: snapshot_error, data } = await load_leave_request_snapshot(
+    service,
+    scope,
+    ctx.user_id,
+    id,
+    schema_version
+  );
+  if (snapshot_error || !data) return snapshot_error;
+
+  return ok(schema_version, data);
 }
