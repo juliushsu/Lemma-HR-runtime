@@ -1,5 +1,6 @@
 import { fail, ok } from "../../../_lib";
 import { get_leave_write_context } from "../../../leave/_lib";
+import { load_leave_mvp_scope_access } from "../../../leave/_mvp_access";
 import { get_leave_service_supabase, load_leave_request_snapshot } from "../../../leave/_snapshot";
 
 type Params = {
@@ -35,6 +36,20 @@ export async function POST(request: Request, { params }: Params) {
   }
   if (!comment) {
     return fail(schema_version, "REJECTION_COMMENT_REQUIRED", "comment is required", 400);
+  }
+
+  const access_result = await load_leave_mvp_scope_access(service, ctx, scope, schema_version);
+  if (access_result.response || !access_result.data) return access_result.response;
+  if (!access_result.data.actor_employee) {
+    return fail(schema_version, "ACTOR_EMPLOYEE_REQUIRED", "Current user is not mapped to an employee in scope", 400);
+  }
+  if (access_result.data.actor_employee.id !== approver_employee_id) {
+    return fail(
+      schema_version,
+      "APPROVER_ACTOR_MISMATCH",
+      "Current user must match approver_employee_id for leave rejection",
+      403
+    );
   }
 
   const { data: leave_request, error: request_error } = await service

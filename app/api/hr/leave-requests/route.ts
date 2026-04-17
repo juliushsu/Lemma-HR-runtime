@@ -7,6 +7,7 @@ import {
   resolve_leave_locale_hint,
   resolve_leave_request_employee
 } from "../leave/_locale";
+import { load_leave_mvp_scope_access, resolve_leave_mvp_list_employee_filter } from "../leave/_mvp_access";
 import { load_leave_request_snapshot } from "../leave/_snapshot";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
@@ -75,21 +76,28 @@ export async function GET(request: Request) {
   }
 
   const requested_employee_id = new URL(request.url).searchParams.get("employee_id");
-  const { data: employees, error: employees_error } = await list_leave_scoped_employees(service, scope);
-  if (employees_error) {
-    return fail(schema_version, "INTERNAL_ERROR", "Failed to resolve scoped employees", 500);
-  }
+  const access_result = await load_leave_mvp_scope_access(service, ctx, scope, schema_version, requested_employee_id);
+  if (access_result.response || !access_result.data) return access_result.response;
 
-  const employee = resolve_leave_request_employee(employees, requested_employee_id, ctx.user_email);
+  const { employees, actor_employee, requested_employee } = access_result.data;
+  const filter_result = resolve_leave_mvp_list_employee_filter(schema_version, access_result.data, requested_employee_id);
+  if (filter_result.response) return filter_result.response;
+
+  const employee = requested_employee ?? actor_employee;
   const locale_hint = await resolve_leave_locale_hint(service, scope, employee, ctx.user_id);
 
-  const { data, error } = await service
+  let query = service
     .from("leave_requests")
     .select("id,status,current_step")
     .eq("org_id", scope.org_id)
     .eq("company_id", scope.company_id)
-    .eq("environment_type", scope.environment_type)
-    .order("created_at", { ascending: false });
+    .eq("environment_type", scope.environment_type);
+
+  if (filter_result.employee_id) {
+    query = query.eq("employee_id", filter_result.employee_id);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) {
     return fail(schema_version, "INTERNAL_ERROR", "Failed to fetch leave requests", 500);
