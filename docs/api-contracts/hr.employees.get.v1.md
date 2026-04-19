@@ -163,6 +163,14 @@ These fields are display-oriented reads, not direct writable employee master fie
 
 ## 4. UI Consumption Rules
 
+### Cross-Route Integration Rule
+
+- `GET /api/hr/employees/:id` supports both employee UUID and exact `employee_code`
+- `PATCH /api/hr/employees/:id` supports employee UUID only and does not support `employee_code`
+- if the UI enters the employee detail page from GET, it must retain `data.employee.id` before attempting PATCH
+- PATCH success response cannot be used as the employee detail view model
+- after successful PATCH, the UI must refetch canonical `GET /api/hr/employees/:id` detail before rendering view mode
+- Readdy must not infer PATCH path semantics from GET path semantics; the two routes intentionally differ
 ### Direct display fields
 
 Safe to display directly from `data.employee`:

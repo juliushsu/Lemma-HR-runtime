@@ -64,9 +64,11 @@ Every contract file must include all of the following:
 6. `Smoke Examples`
 7. `Debug Playbook`
 
-In addition, frontend-facing APIs should also have a source trace record under:
+In addition, every frontend-facing API must have a source trace record under:
 
 - `docs/api-contracts/source-records/`
+
+If a frontend-facing API does not have a corresponding source record in `docs/api-contracts/source-records/`, that API is not complete and must not be treated as implementation-ready by frontend consumers such as Readdy.
 
 ## Contract Writing Rules
 
@@ -89,6 +91,7 @@ An API change is not done unless:
 3. request and response examples are updated
 4. the `Debug Playbook` is updated when debugging behavior changes
 5. the API is traceable to source repo + source path + deploy target
+6. every frontend-facing API has a matching source record under `docs/api-contracts/source-records/`
 
 ## Change Rules
 
@@ -98,6 +101,7 @@ An API change is not done unless:
 - do not ship code-only shape changes
 - do not maintain multiple truth-sources for the same route
 - do not treat deployed source as acceptable if repo/path/deploy trace is unknown
+- do not hand a frontend-facing API to Readdy or other UI consumers unless both the contract doc and the source record exist
 
 ## Suggested Review Flow
 
