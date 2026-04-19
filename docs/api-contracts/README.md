@@ -10,6 +10,19 @@ Goals:
 - frontend adapters do not guess response shape
 - API vs adapter vs UI issues can be debugged from the contract first
 - code changes and contract changes ship together
+- source repo, source path, and deployed runtime must be traceable
+
+## Governance Documents
+
+These files are part of the formal rules for this folder:
+
+- [API Source Governance Rule v1](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/docs/api-contracts/api-source-governance.v1.md)
+
+Required reading order:
+
+1. this README
+2. `api-source-governance.v1.md`
+3. the route-specific contract doc
 
 ## Authority Rules
 
@@ -51,6 +64,10 @@ Every contract file must include all of the following:
 6. `Smoke Examples`
 7. `Debug Playbook`
 
+In addition, frontend-facing APIs should also have a source trace record under:
+
+- `docs/api-contracts/source-records/`
+
 ## Contract Writing Rules
 
 - document current runtime behavior, not the desired future state
@@ -71,6 +88,7 @@ An API change is not done unless:
 2. the contract reflects runtime behavior
 3. request and response examples are updated
 4. the `Debug Playbook` is updated when debugging behavior changes
+5. the API is traceable to source repo + source path + deploy target
 
 ## Change Rules
 
@@ -79,12 +97,14 @@ An API change is not done unless:
 - response shape changed: update `schema_version`
 - do not ship code-only shape changes
 - do not maintain multiple truth-sources for the same route
+- do not treat deployed source as acceptable if repo/path/deploy trace is unknown
 
 ## Suggested Review Flow
 
 When debugging:
 
 1. confirm the contract file for the route
-2. confirm the live response matches the contract
-3. confirm the frontend adapter matches the contract
-4. only then inspect UI rendering logic
+2. confirm the source record for the route when available
+3. confirm the live response matches the contract
+4. confirm the frontend adapter matches the contract
+5. only then inspect UI rendering logic
