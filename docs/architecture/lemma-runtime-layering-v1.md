@@ -1,45 +1,180 @@
-# Lemma Runtime Layering v1
+# Lemma Runtime Governance Rule v1
 
-Status: architecture inventory and policy proposal
+Status: formal runtime governance rule
 
 Purpose:
 
-- classify where current runtime responsibility lives across Railway, Supabase Edge Functions, and direct DB / RPC / Supabase client usage
-- make temporary runtime overrides explicit
-- identify where current API families are layered correctly and where they are drifting
-- define a minimum runtime policy for future reclassification decisions
+- prevent frontend-facing API families from drifting across Railway, Supabase Edge, and DB / RPC layers without an explicit ownership decision
+- ensure Readdy, Codex, and CTO use the same runtime classification rule before frontend integration begins
+- stop the failure mode where canonical design source, deployed runtime source, and frontend-called runtime all differ
 
 Scope:
 
-- frontend-facing API families under `app/api/**`
-- documented temporary runtime overrides
-- direct DB / RPC usage that already acts as the real business-rule substrate behind HTTP routes
+- all frontend-facing API families
+- all temporary runtime overrides
+- all staging, sandbox, and future production-facing runtimes
+- all DB / RPC or direct Supabase client paths that may be proposed as frontend-facing runtime
 
-This document reflects:
+Relationship to other governance docs:
 
-- current app route inventory in this repo
-- current API contract and source-governance docs
-- the documented temporary employee detail runtime override to Supabase edge
+- API contract truth-source remains under `docs/api-contracts/`
+- API source traceability remains governed by `docs/api-contracts/api-source-governance.v1.md`
+- this document governs **runtime classification and placement**
 
-## Layer Definitions
+## 1. Runtime Layers
 
 ### Railway
 
 - Next.js app routes under `app/api/**`
-- owns HTTP envelope, selected-context resolution, auth/session handling, preview override behavior, and frontend contract shaping
+- owns HTTP envelope, auth/session resolution, selected context, preview override, canonical contract shaping, and workflow orchestration
 
 ### Supabase Edge Functions
 
-- external function runtime used outside this repo when a frontend-facing route is temporarily or permanently served from edge
-- must be treated as a separate runtime source with its own deploy trace and source record
+- external function runtime used outside this repo when a frontend-facing API family is intentionally or temporarily served from edge
+- must be treated as a separate runtime source with separate deploy traceability
 
-### Direct DB / RPC / Supabase client
+### DB / RPC / Direct Supabase Client
 
-- Postgres schema, RPC functions, RLS, and scoped Supabase client reads/writes
-- may be the real substrate for workflow or read-model logic
-- should not automatically become the frontend contract surface just because the logic lives there
+- Postgres schema, RLS, SQL functions, RPCs, and direct Supabase reads/writes
+- may own durable business logic or internal read substrate
+- does not automatically become a valid frontend-facing runtime just because logic exists there
 
-## Runtime Inventory
+## 2. Mandatory Pre-Frontend Decision Rule
+
+Before any frontend-facing API family is connected to frontend consumption, one runtime classification must be chosen explicitly:
+
+- `Railway`
+- `Supabase Edge`
+- `DB / RPC / direct Supabase client`
+
+If runtime classification is not decided and recorded, frontend integration must not start.
+
+Required record:
+
+- the runtime choice must appear in either:
+  - a route source record
+  - a runtime decision record
+  - or both
+
+Minimum required fields for the decision:
+
+- API family name
+- current runtime
+- canonical runtime
+- source repo/path
+- contract doc path
+- deploy target
+- deploy method
+
+## 3. Prohibited States
+
+The following are not allowed as steady-state governance:
+
+- one frontend-facing API family split across multiple runtimes for normal operation
+- a temporary runtime override without a source record
+- a temporary runtime override without explicit exit criteria
+- a runtime with unknown deploy traceability being treated as governance-complete
+- frontend inferring or guessing canonical runtime from observed behavior
+- frontend independently switching from Railway to Edge or from Edge to Railway without a governance update
+
+### 3.1 Split runtime prohibition
+
+A frontend-facing API family must not remain long-term in any of these states:
+
+- `GET` on Edge while `PATCH` remains on Railway without an explicit temporary override record
+- list endpoints on one runtime while detail endpoints on another runtime without explicit family governance
+- one frontend surface consuming both app-route and edge-route variants of the same family
+
+### 3.2 Temporary override rule
+
+If a temporary runtime override is used, all of the following are mandatory:
+
+1. a source record exists
+2. the temporary runtime is named explicitly
+3. the canonical design source is still named explicitly
+4. contract ownership is explicit
+5. exit criteria are recorded
+
+### 3.3 Traceability rule
+
+If deploy target, deploy method, source path, or deployment trace is unknown, the runtime may still exist operationally, but it must not be described as governance-complete.
+
+### 3.4 Frontend consumption rule
+
+Frontend must not:
+
+- guess canonical runtime
+- treat a temporary override as the permanent source of truth
+- switch to an alternate runtime because it “seems to work”
+- infer ownership from payload shape alone
+
+Frontend may only consume the runtime designated by:
+
+- the contract doc
+- the source record
+- and the runtime decision record when one exists
+
+## 4. Runtime Placement Decision Table
+
+| Condition | Default runtime | Rule |
+| --- | --- | --- |
+| auth/session/context orchestration | Railway | must stay in Railway |
+| workflow/business rule with multi-step permission or state transitions | Railway | must stay in Railway even if DB/RPC supports part of the logic |
+| lightweight read-model shaping | Railway or Edge | allowed in either, but canonical owner must be explicitly designated |
+| internal lookup/read-only substrate | DB / RPC / direct client | may stay below the frontend-facing API layer; should not automatically become product API |
+| temporary proxy / migration bridge | Edge | allowed only with source record, contract continuity, and exit criteria |
+
+### 4.1 Railway placement criteria
+
+Place the API family in Railway when it:
+
+- resolves auth/session
+- depends on selected context or preview override
+- shapes the canonical frontend response contract
+- coordinates multiple reads/writes across entities
+- performs workflow authorization checks
+
+### 4.2 Edge placement criteria
+
+Place the API family in Edge only when:
+
+- Edge is intentionally designated as the canonical owner
+- or Edge is explicitly serving as a temporary proxy
+
+Edge is not acceptable simply because:
+
+- it is easier to hotfix quickly
+- it already exists somewhere else
+- frontend has already started calling it
+
+### 4.3 DB / RPC / direct client placement criteria
+
+Keep logic in DB / RPC / direct client when it is:
+
+- internal lookup
+- pure data substrate
+- reusable mutation kernel behind a Railway-owned contract
+- not intended to be the primary frontend-facing contract owner
+
+## 5. Definition Of Done For Frontend-Facing API Families
+
+A frontend-facing API family is not complete unless all of the following exist:
+
+1. contract doc
+2. source record
+3. runtime classification
+4. deploy target
+5. deploy method
+6. deployment trace
+7. temporary override details and exit criteria, if a temporary override exists
+
+Any missing item above means:
+
+- the API family may exist in runtime
+- but it is not governance-complete
+- and must not be treated as stable integration-ready surface
+
+## 6. Current Runtime Inventory
 
 | API family | Current runtime target | Canonical design source | Current runtime status | Should instead be | Main reason | Current risk |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -51,134 +186,52 @@ This document reflects:
 | leave approval actions | dual Railway families: imperative service-role approval routes under `/api/hr/leave-requests/[id]/*` and RPC-backed routes under `/api/hr/leave/requests/[id]/*` | split across [`app/api/hr/leave-requests/[id]/approve/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/hr/leave-requests/[id]/approve/route.ts) and [`app/api/hr/leave/requests/[id]/approve/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/hr/leave/requests/[id]/approve/route.ts) | non-canonical dual runtime within Railway | Railway | workflow/business rule | dual runtime, contract drift, duplicated mapping logic |
 | language skills | Railway app routes delegating to DB RPC | [`app/api/hr/employees/[id]/language-skills/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/hr/employees/[id]/language-skills/route.ts) and related DB RPC calls | canonical, intentionally layered | Railway | lightweight read-model shaping over DB-owned write logic | duplicated mapping logic if frontend bypasses Railway and contract ownership becomes unclear |
 | departments / positions | Railway app routes with direct scoped table reads; departments also writable via Railway | [`app/api/hr/departments/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/hr/departments/route.ts), [`app/api/hr/positions/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/hr/positions/route.ts) | canonical | Railway | internal lookup/read-only plus small master-data writes | contract drift and master-governance split if these are consumed directly from DB by frontend |
-| debug / observability related endpoints | Railway internal audit endpoint for LINE audit; raw access logging lives in DB; central error pool not yet implemented | [`app/api/integrations/line/audit/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/integrations/line/audit/route.ts), [`public.api_access_logs` migration](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/supabase/migrations/20260408101000_staging_beta_lock_security_setup.sql:48), [error events proposal](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/docs/architecture/error-events-foundation-v1.md) | mixed: audit route exists, raw logs exist, central error pool is still proposal-only | Railway for internal audit surfaces; DB/RPC/direct client for raw storage | internal lookup/read-only and temporary proxy for observability gaps | source unresolved for future error ingest, duplicated mapping logic, no unified error pipeline |
+| debug / observability related endpoints | Railway internal audit endpoint for LINE audit; raw access logging lives in DB; central error pool not yet implemented | [`app/api/integrations/line/audit/route.ts`](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/app/api/integrations/line/audit/route.ts), [`public.api_access_logs` migration](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/supabase/migrations/20260408101000_staging_beta_lock_security_setup.sql:48), [error events proposal](/Users/chishenhsu/Desktop/Codex/Lemma%20HR+/docs/architecture/error-events-foundation-v1.md) | mixed: audit route exists, raw logs exist, central error pool is still proposal-only | Railway for internal audit surfaces; DB / RPC / direct client for raw storage | source unresolved for future error ingest, duplicated mapping logic, no unified error pipeline |
 
-## Family Notes
-
-### `/api/me`
-
-- This is the clearest Railway-owned surface in the repo.
-- It resolves selected context, emits staging debug headers, and shapes the auth/session payload for the frontend.
-- This family should not move to edge unless edge becomes the canonical auth/session orchestrator, which it is not today.
-
-### Employee detail `GET / PATCH`
-
-- This is currently the clearest example of runtime drift.
-- Canonical design source is Railway.
-- Current live integration state treats `GET` as temporarily served by Supabase edge `api-hr-employees`.
-- `PATCH` remains Railway-owned.
-- Even if the temporary edge runtime now returns the nested contract shape, this is still not governance closure because the family is split across runtimes.
-
-### Employee list
-
-- Employee list is currently a straightforward Railway read-model endpoint.
-- It performs scope enforcement and light enrichment across departments, positions, and managers.
-- There is no strong reason to move this family to edge while employee detail remains Railway-owned by design.
-
-### Org chart
-
-- Org chart is a good example of Railway doing lightweight shaping over normalized tables.
-- It is read-only, but it still depends on selected context, auth, and consistent DTO shaping.
-- If tree-building later moves into DB/RPC, Railway should still remain the frontend contract layer.
-
-### Leave requests and approval actions
-
-- Leave is currently the largest layering inconsistency inside Railway itself.
-- There are two parallel route families:
-  - `/api/hr/leave-requests/*`
-  - `/api/hr/leave/requests/*`
-- One family uses service-role orchestration and snapshot assembly.
-- The other family uses DB RPC as the business-rule core.
-- This is a real dual-runtime problem even though both are still deployed through Railway.
-
-### Language skills
-
-- Language skills are the cleanest current example of the preferred mixed model:
-  - Railway owns auth, scope, HTTP envelope, and contract
-  - DB RPC owns mutation semantics and read/write validation
-- This family should remain Railway at the frontend boundary.
-
-### Departments / positions
-
-- These are master-data families with simple reads and limited writes.
-- They can remain thin Railway routes.
-- They should not be exposed as direct client DB reads for frontend product traffic because that would split governance from employee detail and org chart consumers.
-
-### Debug / observability
-
-- Current observability is fragmented:
-  - `public.api_access_logs` exists
-  - `public.error_events` does not yet exist as a real runtime table
-  - `LINE audit` exists as a Railway internal endpoint
-- This means the platform has storage for access logging, but not a unified frontend-debuggable error event layer yet.
-
-## Recommended Runtime Policy v1
+## 7. Recommended Runtime Policy v1
 
 ### What MUST stay in Railway
 
-- Any frontend-facing endpoint that resolves auth/session context
-- Any endpoint that depends on selected context, preview override, or membership gating
-- Any endpoint that assembles a canonical response contract across multiple tables
-- Any workflow mutation with multi-step authorization or state transitions
-
-Examples:
-
-- `/api/me`
-- employee detail GET/PATCH
-- employee list
-- org chart
-- leave requests and approval actions
+- any frontend-facing endpoint that resolves auth/session context
+- any endpoint that depends on selected context, preview override, or membership gating
+- any endpoint that assembles a canonical response contract across multiple tables
+- any workflow mutation with multi-step authorization or state transitions
 
 ### What MAY live in Edge
 
-- Temporary runtime proxies during controlled migration, but only if they are explicitly recorded as temporary overrides in a source record
-- Narrow read-only surfaces where edge is intentionally designated as the canonical implementation source
-- Transitional compatibility layers that preserve the canonical contract while Railway is being repaired or reclassified
+- temporary runtime proxies during controlled migration
+- narrow read-only surfaces intentionally designated as edge-owned
+- transitional compatibility layers that preserve the canonical contract while canonical runtime is being repaired
 
-Constraints:
+Mandatory conditions:
 
-- edge must have a contract doc
-- edge must have a source record
-- edge deploy source must be traceable
-- edge must not silently diverge from the documented canonical response shape
+- contract doc exists
+- source record exists
+- runtime classification is explicit
+- deploy trace is explicit
+- canonical owner is explicit
 
 ### What SHOULD NOT be wrapped as API
 
-- Raw internal logging tables such as `public.api_access_logs`
-- Internal helper RPC that only exists to support a Railway-owned contract
-- Read-only internal tables or lookup material that do not need a separate frontend-facing contract
+- raw internal logging tables such as `public.api_access_logs`
+- helper RPC that only supports a Railway-owned contract
+- internal lookup material that does not need a standalone frontend-facing contract
 
-Preferred rule:
+## 8. Immediate Reclassification Candidates
 
-- if the value is only useful as a subordinate substrate for a Railway-owned endpoint, keep it as DB / RPC, not a separate product API
+1. employee detail `GET`
+2. employee detail family as a whole
+3. leave requests family
+4. leave approval actions family
+5. debug / observability surfaces
 
-## Immediate Reclassification Candidates
+## 9. Enforcement Summary
 
-1. **Employee detail GET**
-   Current state is a temporary Supabase edge override over a Railway-designed contract.
-   This should be reclassified back to canonical Railway runtime first.
+This rule prevents runtime sprawl by forcing one decision before frontend work starts:
 
-2. **Employee detail family as a whole**
-   `GET` and `PATCH` should return to one runtime family and one source of deploy truth.
+- one frontend-facing API family
+- one canonical runtime
+- one contract owner
+- one deploy trace
 
-3. **Leave requests family**
-   Converge `/api/hr/leave-requests/*` and `/api/hr/leave/requests/*` into one canonical family.
-
-4. **Leave approval action family**
-   Converge approve / reject / cancel actions onto the same canonical leave runtime strategy as list/detail/create.
-
-5. **Debug / observability surfaces**
-   Formalize one policy:
-   - Railway for internal audit endpoints
-   - DB for raw log storage
-   - no ad hoc product-facing debug APIs without contract and source governance
-
-## Practical Summary
-
-- Railway should remain the canonical frontend contract layer for core HR APIs.
-- Edge is acceptable only as an explicitly documented temporary override or a deliberately canonicalized edge surface.
-- DB/RPC should own durable business rules and storage semantics, but should not silently replace frontend API ownership.
-- The biggest current layering risks are:
-  - employee detail split across Railway design and edge runtime
-  - leave split across two parallel Railway families
-  - observability split across raw log storage, internal audit surfaces, and proposal-only error-event design
+If a second runtime appears later, it must be recorded explicitly as a temporary override with exit criteria, or it is a governance violation.
