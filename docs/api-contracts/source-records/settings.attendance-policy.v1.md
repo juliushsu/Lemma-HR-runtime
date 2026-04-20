@@ -1,0 +1,21 @@
+## Source Record
+
+- source_repo: `Lemma-HR-runtime`
+- source_path:
+  - intended read source: `app/api/settings/attendance-policy/route.ts`
+  - intended write source: `app/api/settings/attendance-policy/route.ts`
+- deploy_target: `Railway staging`
+- deploy_method: `git-linked or CLI upload`
+- contract_doc_path: `docs/api-contracts/settings.attendance-policy.v1.md`
+- deployment_id: `unknown`
+- schema_version:
+  - read: `settings.attendance_policy.v1`
+  - write: `settings.attendance_policy.update.v1`
+- owner: `organization settings / attendance policy`
+- last_verified_at: `2026-04-20`
+- notes:
+  - this source record establishes attendance policy as a canonical organization settings family
+  - Phase 1 family target is `GET / PATCH /api/settings/attendance-policy`
+  - current adjacent read substrate may still come from existing settings and attendance-context routes until convergence is implemented
+  - company-level attendance policy is in scope for Phase 1
+  - location-level override write is deferred and must not be silently embedded into the initial family
