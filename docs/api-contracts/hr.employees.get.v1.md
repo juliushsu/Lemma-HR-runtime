@@ -76,6 +76,7 @@ Notes:
       "employment_status": "active",
       "hire_date": "2026-01-15",
       "termination_date": null,
+      "gender": "female",
       "gender_note": "female",
       "notes": "Demo employee detail sample"
     },
@@ -135,6 +136,7 @@ Notes:
   - `position_id`
   - `manager_employee_id`
   - `termination_date`
+  - `gender`
   - `gender_note`
   - `notes`
 
@@ -142,7 +144,6 @@ Notes:
 
 The current route does not return the following employee-detail fields that older detail docs may imply:
 
-- `data.employee.gender`
 - `data.employee.birth_date`
 - `data.employee.emergency_contact_name`
 - `data.employee.emergency_contact_phone`
