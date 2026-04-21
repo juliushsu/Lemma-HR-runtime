@@ -95,6 +95,22 @@ This layer records a human choice:
 
 This is the "what the company decided to do" layer.
 
+Phase 1's first canonical decision mutation is:
+
+- `POST /api/legal/governance-checks/:id/acknowledge-warning`
+
+This mutation is intentionally governance-only:
+
+- it records that a human reviewed and accepted the risk
+- it writes an append-only decision ledger entry
+- it updates governance status only
+
+It must not:
+
+- rewrite company policy
+- auto-apply AI suggestions
+- trigger payroll, leave, or attendance mutation
+
 ## Ownership Model
 
 The legal governance layer has two ownership zones.
@@ -128,6 +144,8 @@ Customers may interact with:
 
 Customers may use AI-assisted governance, but they may not control the platform's underlying legal model topology.
 
+Phase 1 decision evidence is stored append-only in `public.legal_governance_decisions`.
+
 ## Canonical Families
 
 Phase 1 canonical families are:
@@ -160,6 +178,8 @@ Reserved Phase 1 action family:
 - `POST /api/legal/governance-checks/:id/adopt-suggestion`
 - `POST /api/legal/governance-checks/:id/keep-current`
 - `POST /api/legal/governance-checks/:id/acknowledge-warning`
+
+Phase 1 currently implements only `acknowledge-warning`.
 
 ### E. Document / Policy Analysis Family
 

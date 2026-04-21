@@ -2,6 +2,7 @@ import type { AccessContext, LegalScope } from "../_lib";
 import { isStagingRuntime } from "../../_selected_context";
 
 export const GOVERNANCE_READ_ROLES = new Set(["owner", "super_admin", "org_super_admin", "admin"]);
+export const GOVERNANCE_WRITE_ROLES = new Set(["owner", "super_admin", "org_super_admin", "admin"]);
 export const ALLOWED_DOMAINS = new Set(["leave", "attendance", "payroll", "contract", "insurance"]);
 export const ALLOWED_SEVERITIES = new Set(["info", "low", "medium", "high", "critical"]);
 export const ALLOWED_STATUSES = new Set(["pending_review", "adopted", "kept_current", "acknowledged_risk"]);
@@ -301,6 +302,10 @@ function role_scope_match(membership: AccessContext["memberships"][number], scop
 
 export function can_read_governance(ctx: AccessContext, scope: LegalScope) {
   return ctx.memberships.some((membership) => role_scope_match(membership, scope) && GOVERNANCE_READ_ROLES.has(membership.role));
+}
+
+export function can_write_governance(ctx: AccessContext, scope: LegalScope) {
+  return ctx.memberships.some((membership) => role_scope_match(membership, scope) && GOVERNANCE_WRITE_ROLES.has(membership.role));
 }
 
 export function parse_enum_param(

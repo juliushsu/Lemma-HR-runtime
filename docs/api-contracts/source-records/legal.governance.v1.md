@@ -6,7 +6,7 @@
 - source_repo: `Lemma-HR-runtime`
 - deploy_target: `Railway staging`
 - deploy_method: `CLI upload`
-- deployment_id: `aad12201-53cb-4191-9401-ff76ef778dd8`
+- deployment_id: `c3b57ce3-4a7f-4a2d-aee3-5f56878c3575`
 - last_verified_at: `2026-04-21`
 
 ### Canonical Runtime Families
@@ -37,19 +37,25 @@
 - source path:
   - `app/api/legal/governance-checks/route.ts`
   - `app/api/legal/governance-checks/[id]/route.ts`
+  - `app/api/legal/governance-checks/[id]/acknowledge-warning/route.ts`
+  - `app/api/legal/governance-checks/_actions.ts`
 - contract doc:
   - `docs/api-contracts/legal.governance.v1.md`
 - schema versions:
   - list: `legal.governance_checks.list.v1`
   - detail: `legal.governance_checks.detail.v1`
+  - mutation: `legal.governance.decision.v1`
 - db substrate:
   - table: `public.legal_governance_checks`
+  - table: `public.legal_governance_decisions`
   - migration: `supabase/migrations/20260422113000_legal_governance_checks_phase1_read_substrate.sql`
+  - migration: `supabase/migrations/20260422143000_legal_governance_acknowledge_warning.sql`
   - staging seed: `supabase/seeds/staging/20260422_legal_governance_checks_phase1_seed.sql`
 - status:
   - list route implemented
   - detail route implemented
-  - action routes still deferred
+  - acknowledge-warning route implemented
+  - decision writes are ledger-only and do not mutate company policy
   - staging runtime may temporarily serve scoped fallback fixtures if the DB substrate is not yet readable
 
 #### Reserved adoption family
@@ -60,8 +66,8 @@
   - `app/api/legal/governance-checks/[id]/acknowledge-warning/route.ts`
 - current status:
   - reserved
-  - action semantics defined
-  - implementation deferred
+  - adopt-suggestion deferred
+  - keep-current deferred
 
 #### Reserved analysis family
 
@@ -81,7 +87,7 @@
 | administrative guidance refs | `planned` | includes ministry guidance and similar materials |
 | customer current policy objects | `partial` | depends on target domain such as leave, payroll, attendance |
 | AI-suggested comparison output | `planned` | advisory only |
-| adoption / acknowledgement actions | `reserved` | model defined, route may be deferred |
+| adoption / acknowledgement actions | `partial` | `acknowledge-warning` implemented; other action routes remain deferred |
 
 ### Ownership Notes
 

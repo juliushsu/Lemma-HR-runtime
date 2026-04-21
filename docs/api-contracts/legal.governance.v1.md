@@ -8,12 +8,12 @@ Phase 1 legal governance families:
 - `GET /api/legal/updates/:id`
 - `GET /api/legal/governance-checks`
 - `GET /api/legal/governance-checks/:id`
+- `POST /api/legal/governance-checks/:id/acknowledge-warning`
 
 Reserved Phase 1 action family:
 
 - `POST /api/legal/governance-checks/:id/adopt-suggestion`
 - `POST /api/legal/governance-checks/:id/keep-current`
-- `POST /api/legal/governance-checks/:id/acknowledge-warning`
 
 Reserved analysis family:
 
@@ -26,6 +26,7 @@ Schema versions:
 - update detail: `legal.update.detail.v1`
 - checks list: `legal.governance_checks.list.v1`
 - check detail: `legal.governance_checks.detail.v1`
+- governance decision: `legal.governance.decision.v1`
 - analysis result: `legal.analysis.result.v1`
 
 ## 2. Canonical Runtime Rule
@@ -390,13 +391,70 @@ Return one governance comparison item within the selected company scope.
 }
 ```
 
-## 9. Reserved Adoption Actions
+## 9. `POST /api/legal/governance-checks/:id/acknowledge-warning`
 
-Phase 1 should reserve these actions even if implementation is deferred:
+### Purpose
+
+Record that a human user acknowledges the governance risk and intentionally keeps company policy unchanged.
+
+This route:
+
+- records human risk acceptance
+- changes only `company_decision_status`
+- appends one decision-ledger row when first acknowledged
+
+This route must not:
+
+- mutate attendance policy
+- mutate leave policy
+- mutate payroll settings
+- trigger adopt / auto-fix flows
+- trigger AI rewrite
+
+### Request body
+
+```json
+{
+  "reason": "Optional human explanation"
+}
+```
+
+### Success example
+
+```json
+{
+  "schema_version": "legal.governance.decision.v1",
+  "data": {
+    "check_id": "11111111-1111-1111-1111-111111111111",
+    "company_decision_status": "acknowledged_risk",
+    "decision": {
+      "type": "acknowledge_warning",
+      "actor_user_id": "22222222-2222-2222-2222-222222222222",
+      "acknowledged_at": "2026-04-21T12:00:00.000Z"
+    }
+  },
+  "meta": {
+    "request_id": "11111111-1111-1111-1111-111111111111",
+    "timestamp": "2026-04-21T12:00:00.000Z"
+  },
+  "error": null
+}
+```
+
+### Mutation semantics
+
+- authority scope is resolved from bearer JWT + selected context
+- frontend `org_id` / `company_id` / `environment_type` are never accepted as truth
+- write path is owned by one DB function: `public.acknowledge_governance_warning(jsonb)`
+- function must be transaction-safe and append-only audit-friendly
+- repeated acknowledge on an already-acknowledged item returns a safe idempotent success
+
+## 10. Reserved Adoption Actions
+
+Phase 1 should still reserve these actions:
 
 - `POST /api/legal/governance-checks/:id/adopt-suggestion`
 - `POST /api/legal/governance-checks/:id/keep-current`
-- `POST /api/legal/governance-checks/:id/acknowledge-warning`
 
 ### Intended behavior
 
@@ -412,12 +470,7 @@ Phase 1 should reserve these actions even if implementation is deferred:
 - should require `override_reason`
 - should preserve risk acknowledgement fields
 
-`acknowledge-warning`
-
-- records that the warning was seen and accepted
-- does not imply adoption
-
-## 10. Reserved Analysis Family
+## 11. Reserved Analysis Family
 
 Reserved Phase 1 analysis targets:
 
@@ -447,7 +500,7 @@ If implemented later, the result should include at least:
 - `suggested_actions[]`
 - `requires_human_review`
 
-## 11. Error Matrix
+## 12. Error Matrix
 
 | HTTP | Code | Meaning |
 | --- | --- | --- |
@@ -455,12 +508,12 @@ If implemented later, the result should include at least:
 | `403` | `SCOPE_FORBIDDEN` | actor cannot access this company-scoped legal governance data |
 | `404` | `LEGAL_UPDATE_NOT_FOUND` | requested update does not exist in scope |
 | `404` | `GOVERNANCE_CHECK_NOT_FOUND` | requested governance check does not exist in scope |
-| `409` | `CHECK_ALREADY_RESOLVED` | an adoption action cannot be repeated |
+| `404` | `CHECK_NOT_FOUND` | requested governance check does not exist in scope for the action route |
+| `409` | `REQUEST_ALREADY_RESOLVED` | governance check is already in a final non-acknowledge state |
 | `400` | `INVALID_REQUEST` | malformed payload or missing required action fields |
-| `500` | `CONFIG_MISSING` | required legal-governance substrate missing |
 | `500` | `INTERNAL_ERROR` | failed to read or process governance object |
 
-## 12. Non-goals
+## 13. Non-goals
 
 This Phase 1 legal governance contract does not do:
 
