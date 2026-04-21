@@ -1,0 +1,24 @@
+## Source Record
+
+- source_repo: `Lemma-HR-runtime`
+- source_path:
+  - intended self read/write source: `app/api/hr/self/attendance-corrections/route.ts`
+  - intended review list source: `app/api/hr/attendance-corrections/route.ts`
+  - intended approve source: `app/api/hr/attendance-corrections/[id]/approve/route.ts`
+  - intended reject source: `app/api/hr/attendance-corrections/[id]/reject/route.ts`
+- deploy_target: `Railway staging`
+- deploy_method: `git-linked or CLI upload`
+- contract_doc_path: `docs/api-contracts/hr.attendance-corrections.v1.md`
+- deployment_id: `unknown`
+- schema_version:
+  - self list: `hr.self.attendance_corrections.list.v1`
+  - self create: `hr.self.attendance_corrections.create.v1`
+  - review list: `hr.attendance_corrections.list.v1`
+  - review action: `hr.attendance_corrections.action.v1`
+- owner: `attendance correction family`
+- last_verified_at: `2026-04-21`
+- notes:
+  - this source record establishes self correction create/list and HR review list/action as one canonical attendance correction family
+  - Phase 1 family depends on attendance policy flags for create permission interpretation
+  - manager delegated create and HR-on-behalf create are intentionally deferred
+  - append-only correction event creation on approve is part of the canonical workflow, not an optional side effect
