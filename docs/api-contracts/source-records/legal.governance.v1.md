@@ -5,9 +5,9 @@
 - owner: `AI-assisted legal governance layer`
 - source_repo: `Lemma-HR-runtime`
 - deploy_target: `Railway staging`
-- deploy_method: `git-linked or CLI upload`
-- deployment_id: `unknown`
-- last_verified_at: `not yet implemented`
+- deploy_method: `CLI upload`
+- deployment_id: `aad12201-53cb-4191-9401-ff76ef778dd8`
+- last_verified_at: `2026-04-21`
 
 ### Canonical Runtime Families
 
@@ -34,14 +34,23 @@
 
 #### Governance checks family
 
-- intended source path:
+- source path:
   - `app/api/legal/governance-checks/route.ts`
   - `app/api/legal/governance-checks/[id]/route.ts`
 - contract doc:
   - `docs/api-contracts/legal.governance.v1.md`
 - schema versions:
-  - list: `legal.governance_check.list.v1`
-  - detail: `legal.governance_check.detail.v1`
+  - list: `legal.governance_checks.list.v1`
+  - detail: `legal.governance_checks.detail.v1`
+- db substrate:
+  - table: `public.legal_governance_checks`
+  - migration: `supabase/migrations/20260422113000_legal_governance_checks_phase1_read_substrate.sql`
+  - staging seed: `supabase/seeds/staging/20260422_legal_governance_checks_phase1_seed.sql`
+- status:
+  - list route implemented
+  - detail route implemented
+  - action routes still deferred
+  - staging runtime may temporarily serve scoped fallback fixtures if the DB substrate is not yet readable
 
 #### Reserved adoption family
 
@@ -84,7 +93,8 @@
 ### Governance Notes
 
 - legal update events are distinct from governance checks
-- governance checks compare law, company policy, and suggested values
+- governance checks compare statutory minimum, company current value, and AI suggested value
+- governance checks formalize `rule_strength`, `company_decision_status`, and `impact_domain` in the canonical response
 - adoption actions record human decision, not autonomous policy mutation
 - analysis routes are customer-facing in outcome but system-governed in model control
 

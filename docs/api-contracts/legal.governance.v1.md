@@ -24,8 +24,8 @@ Schema versions:
 
 - updates list: `legal.update.list.v1`
 - update detail: `legal.update.detail.v1`
-- checks list: `legal.governance_check.list.v1`
-- check detail: `legal.governance_check.detail.v1`
+- checks list: `legal.governance_checks.list.v1`
+- check detail: `legal.governance_checks.detail.v1`
 - analysis result: `legal.analysis.result.v1`
 
 ## 2. Canonical Runtime Rule
@@ -187,30 +187,37 @@ Return legal governance comparison results for the selected company scope.
 
 Optional query parameters:
 
+- `domain`
+- `jurisdiction_code`
 - `check_type`
 - `target_object_type`
 - `severity`
-- `human_review_status`
-- `created_by_source`
+- `status`
 - `page`
 - `page_size`
 
 ### Required list item fields
 
 - `id`
+- `domain`
 - `check_type`
 - `target_object_type`
 - `target_object_id`
 - `jurisdiction_code`
+- `rule_strength`
+- `title`
 - `statutory_minimum`
 - `company_current_value`
 - `ai_suggested_value`
 - `deviation_type`
 - `severity`
+- `company_decision_status`
+- `impact_domain`
 - `reason_summary`
-- `human_review_status`
+- `source_ref`
 - `created_by_source`
-- `acknowledged_risk`
+- `created_at`
+- `updated_at`
 
 Allowed `check_type` values:
 
@@ -228,12 +235,20 @@ Allowed `severity` values:
 - `high`
 - `critical`
 
-Allowed `human_review_status` values:
+Allowed `company_decision_status` values:
 
-- `pending`
-- `reviewed`
+- `pending_review`
 - `adopted`
-- `dismissed`
+- `kept_current`
+- `acknowledged_risk`
+
+Allowed `impact_domain` values:
+
+- `leave`
+- `attendance`
+- `payroll`
+- `contract`
+- `insurance`
 
 Allowed `created_by_source` values:
 
@@ -245,40 +260,46 @@ Allowed `created_by_source` values:
 
 ```json
 {
-  "schema_version": "legal.governance_check.list.v1",
+  "schema_version": "legal.governance_checks.list.v1",
   "data": {
     "items": [
       {
-        "id": "check_001",
+        "id": "11111111-1111-1111-1111-111111111111",
+        "domain": "leave",
         "check_type": "leave_policy",
-        "target_object_type": "leave_policy_profile",
-        "target_object_id": "leave_profile_001",
+        "target_object_type": "company_leave_policy",
+        "target_object_id": "natural-disaster-leave-policy",
         "jurisdiction_code": "TW",
+        "rule_strength": "mandatory_minimum",
+        "title": "天然災害假給薪政策低於建議值",
         "statutory_minimum": {
-          "sick_leave": {
-            "compensation_mode": "paid_partial",
-            "compensation_ratio": 0.5
-          }
+          "summary": "不得直接視為曠職"
         },
         "company_current_value": {
-          "sick_leave": {
-            "compensation_mode": "unpaid"
-          }
+          "summary": "公司目前設定為 unpaid"
         },
         "ai_suggested_value": {
-          "sick_leave": {
-            "compensation_mode": "paid_partial",
-            "compensation_ratio": 0.5
-          }
+          "summary": "建議保留 unpaid，但不得扣全勤，並需明確標註為天災假"
         },
-        "deviation_type": "below_statutory_minimum",
-        "severity": "high",
-        "reason_summary": "Current sick-leave treatment appears below statutory minimum.",
-        "human_review_status": "pending",
-        "created_by_source": "scheduled_job",
-        "acknowledged_risk": false
+        "deviation_type": "below_recommended",
+        "severity": "medium",
+        "company_decision_status": "pending_review",
+        "impact_domain": "leave",
+        "reason_summary": "目前公司規則可能把天災假與一般缺勤混同，存在治理風險",
+        "source_ref": {
+          "label": "天然災害出勤管理及工資給付要點",
+          "effective_from": "2025-09-19"
+        },
+        "created_by_source": "ai_scan",
+        "created_at": "2026-04-21T10:00:00Z",
+        "updated_at": "2026-04-21T10:00:00Z"
       }
-    ]
+    ],
+    "pagination": {
+      "page": 1,
+      "page_size": 20,
+      "total": 1
+    }
   },
   "meta": {
     "request_id": "11111111-1111-1111-1111-111111111111",
@@ -288,31 +309,86 @@ Allowed `created_by_source` values:
 }
 ```
 
+### Query semantics
+
+- `status=all` means no `company_decision_status` filter
+- `org_id` / `company_id` / `environment_type` must not be treated as authority inputs from frontend
+- effective scope is resolved from bearer JWT + selected context
+
 ## 8. `GET /api/legal/governance-checks/:id`
 
 ### Purpose
 
-Return one governance check with full comparison context.
+Return one governance comparison item within the selected company scope.
 
 ### Required detail fields
 
-- `id`
-- `check_type`
-- `target_object_type`
-- `target_object_id`
-- `jurisdiction`
-- `statutory_minimum`
-- `company_current_value`
-- `ai_suggested_value`
-- `deviation_summary`
-- `severity`
-- `reason_summary`
-- `human_review_status`
-- `created_by_source`
-- `acknowledged_risk`
-- `override_reason`
-- `approved_by`
-- `approved_at`
+- `item.id`
+- `item.domain`
+- `item.check_type`
+- `item.target_object_type`
+- `item.target_object_id`
+- `item.jurisdiction_code`
+- `item.rule_strength`
+- `item.title`
+- `item.statutory_minimum`
+- `item.company_current_value`
+- `item.ai_suggested_value`
+- `item.deviation_type`
+- `item.severity`
+- `item.company_decision_status`
+- `item.impact_domain`
+- `item.reason_summary`
+- `item.source_ref`
+- `item.created_by_source`
+- `item.created_at`
+- `item.updated_at`
+
+### Detail success example
+
+```json
+{
+  "schema_version": "legal.governance_checks.detail.v1",
+  "data": {
+    "item": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "domain": "leave",
+      "check_type": "leave_policy",
+      "target_object_type": "company_leave_policy",
+      "target_object_id": "natural-disaster-leave-policy",
+      "jurisdiction_code": "TW",
+      "rule_strength": "mandatory_minimum",
+      "title": "天然災害假給薪政策低於建議值",
+      "statutory_minimum": {
+        "summary": "不得直接視為曠職"
+      },
+      "company_current_value": {
+        "summary": "公司目前設定為 unpaid"
+      },
+      "ai_suggested_value": {
+        "summary": "建議保留 unpaid，但不得扣全勤，並需明確標註為天災假"
+      },
+      "deviation_type": "below_recommended",
+      "severity": "medium",
+      "company_decision_status": "pending_review",
+      "impact_domain": "leave",
+      "reason_summary": "目前公司規則可能把天災假與一般缺勤混同，存在治理風險",
+      "source_ref": {
+        "label": "天然災害出勤管理及工資給付要點",
+        "effective_from": "2025-09-19"
+      },
+      "created_by_source": "ai_scan",
+      "created_at": "2026-04-21T10:00:00Z",
+      "updated_at": "2026-04-21T10:00:00Z"
+    }
+  },
+  "meta": {
+    "request_id": "11111111-1111-1111-1111-111111111111",
+    "timestamp": "2026-04-21T12:00:00.000Z"
+  },
+  "error": null
+}
+```
 
 ## 9. Reserved Adoption Actions
 

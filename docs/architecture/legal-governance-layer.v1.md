@@ -199,17 +199,22 @@ Allowed `source_type` values:
 
 Each governance check should contain at least:
 
+- `domain`
 - `check_type`
 - `target_object_type`
 - `target_object_id`
 - `jurisdiction_code`
+- `rule_strength`
+- `title`
 - `statutory_minimum`
 - `company_current_value`
 - `ai_suggested_value`
 - `deviation_type`
 - `severity`
+- `company_decision_status`
+- `impact_domain`
 - `reason_summary`
-- `human_review_status`
+- `source_ref`
 - `created_by_source`
 
 Allowed `check_type` values:
@@ -228,12 +233,20 @@ Allowed `severity` values:
 - `high`
 - `critical`
 
-Allowed `human_review_status` values:
+Allowed `company_decision_status` values:
 
-- `pending`
-- `reviewed`
+- `pending_review`
 - `adopted`
-- `dismissed`
+- `kept_current`
+- `acknowledged_risk`
+
+Allowed `impact_domain` values:
+
+- `leave`
+- `attendance`
+- `payroll`
+- `contract`
+- `insurance`
 
 Allowed `created_by_source` values:
 
@@ -277,16 +290,26 @@ Interpretation:
 
 This field is critical because not every AI suggestion should be treated as legally binding.
 
-## Human Override / Risk Acknowledgement Model
+## Company Decision / Risk Acknowledgement Model
 
 The system must support cases where the company knowingly does not adopt the AI suggestion.
 
 Required fields:
 
+- `company_decision_status`
+- `source_ref`
+- `updated_at`
+
+Interpretation:
+
+- `pending_review`
+  - governance comparison exists, but the company has not yet recorded a decision
+- `adopted`
+  - company chose the suggested or improved direction
+- `kept_current`
+  - company intentionally keeps its current rule despite the comparison result
 - `acknowledged_risk`
-- `override_reason`
-- `approved_by`
-- `approved_at`
+  - company explicitly accepts the remaining risk without adopting the suggestion
 
 This preserves institutional memory and avoids the false appearance that risk disappeared merely because the company declined adoption.
 
