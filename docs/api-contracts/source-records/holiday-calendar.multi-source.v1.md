@@ -1,0 +1,26 @@
+## Source Record
+
+- source_repo: `Lemma-HR-runtime`
+- source_path:
+  - intended read source: `app/api/settings/holiday-calendar/route.ts`
+  - intended write source: `app/api/settings/holiday-calendar/route.ts`
+  - intended preview source: `app/api/settings/holiday-calendar/preview/route.ts`
+- deploy_target: `Railway staging`
+- deploy_method: `git-linked or CLI upload`
+- contract_doc_path: `docs/api-contracts/holiday-calendar.settings.v1.md`
+- preview_doc_path: `docs/api-contracts/holiday-calendar.preview.v1.md`
+- deployment_id: `unknown`
+- schema_version:
+  - read: `holiday_calendar.settings.v1`
+  - write: `holiday_calendar.settings.update.v1`
+  - preview: `holiday_calendar.preview.v1`
+- owner: `organization settings / holiday calendar multi-source governance`
+- last_verified_at: `2026-04-22`
+- notes:
+  - this source record establishes holiday calendar as a shared company-governed settings family
+  - canonical family target is `GET / PATCH /api/settings/holiday-calendar`
+  - canonical preview target is `GET /api/settings/holiday-calendar/preview`
+  - Phase 1 supports one primary calendar plus many secondary calendars
+  - Phase 1 supports scoped secondary adoption for `company`, `location`, and `employee_group`
+  - department and employee-specific writes are deferred
+  - this family is shared substrate for leave, attendance, payroll, and legal governance
